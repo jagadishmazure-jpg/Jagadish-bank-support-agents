@@ -1,0 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "banksupport"
+version = "0.1.0"
+description = "Production-style banking customer-support multi-agent system (synthetic data)"
+requires-python = ">=3.10"
+
+[tool.hatch.build.targets.wheel]
+packages = ["banksupport"]
