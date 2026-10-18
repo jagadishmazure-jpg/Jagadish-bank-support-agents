@@ -1,5 +1,7 @@
 """A premium and a standard customer through the guarded support pipeline."""
 from banksupport import build_system, run_all_evals
+from banksupport.audit import AuditLedger
+from banksupport.feedback import capture_feedback, list_feedback
 
 system = build_system()
 premium = system.auth.login("CUST-1001")
@@ -23,3 +25,11 @@ print("\nAdversarial evals:")
 for r in run_all_evals():
     print(f"  {r.name}: {'PASS' if r.passed else 'FAIL'} - {r.reason}")
 print("\naudit chain intact:", system.audit.verify_chain())
+
+# Feedback capture: thumbs up/down into the same hash-chained ledger, PII scrubbed first.
+ledger = AuditLedger()
+capture_feedback(ledger, session_id="s-demo", turn_id="t1", rating="up")
+fb = capture_feedback(ledger, session_id="s-demo", turn_id="t2", rating="down",
+                      correction="balance was wrong for card 4111 1111 1111 1111")
+print(f"Feedback: {len(list_feedback(ledger))} entries, stored correction {fb['details']['correction']!r}, "
+      f"PII redactions {fb['details']['pii_redactions']}, chain verifies: {ledger.verify_chain()}")

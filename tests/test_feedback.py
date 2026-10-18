@@ -91,3 +91,27 @@ def test_tampered_feedback_breaks_chain():
     assert ledger.verify_chain()
     ledger.entries[-1]["details"]["rating"] = "down"
     assert not ledger.verify_chain()
+
+
+def test_correction_pii_is_scrubbed_before_it_reaches_the_ledger():
+    from banksupport.audit import AuditLedger
+    from banksupport.feedback import capture_feedback
+
+    ledger = AuditLedger()
+    entry = capture_feedback(ledger, session_id="s1", turn_id="t1", rating="down",
+                             correction="wrong card, mine is 4111 1111 1111 1111 and SSN 123-45-6789")
+    text = str(ledger.entries)
+    assert "4111" not in text and "123-45-6789" not in text
+    assert entry["details"]["pii_redactions"] == 2
+    assert ledger.verify_chain()
+
+
+def test_overlong_correction_rejected():
+    import pytest
+
+    from banksupport.audit import AuditLedger
+    from banksupport.feedback import MAX_CORRECTION_CHARS, FeedbackError, capture_feedback
+
+    with pytest.raises(FeedbackError):
+        capture_feedback(AuditLedger(), session_id="s", turn_id="t", rating="down",
+                         correction="x" * (MAX_CORRECTION_CHARS + 1))

@@ -70,11 +70,18 @@ action with an id; nothing runs until it is confirmed.
 **Evals** (`banksupport/evals.py`): number grounding, permission bypass, PII
 leak and unconfirmed action. More: [docs/architecture.md](docs/architecture.md).
 
+**Feedback** (`banksupport/feedback.py`): a thumbs up or down per turn, plus a
+required correction on a thumbs-down, is appended to the same hash-chained
+ledger, so `verify_chain` covers feedback too. The correction goes through the
+`PIIScrubber` first, and only the redaction count is stored with it.
+
 ## Real code and output
 
 ```python
 """A premium and a standard customer through the guarded support pipeline."""
 from banksupport import build_system, run_all_evals
+from banksupport.audit import AuditLedger
+from banksupport.feedback import capture_feedback, list_feedback
 
 system = build_system()
 premium = system.auth.login("CUST-1001")
@@ -98,6 +105,14 @@ print("\nAdversarial evals:")
 for r in run_all_evals():
     print(f"  {r.name}: {'PASS' if r.passed else 'FAIL'} - {r.reason}")
 print("\naudit chain intact:", system.audit.verify_chain())
+
+# Feedback capture: thumbs up/down into the same hash-chained ledger, PII scrubbed first.
+ledger = AuditLedger()
+capture_feedback(ledger, session_id="s-demo", turn_id="t1", rating="up")
+fb = capture_feedback(ledger, session_id="s-demo", turn_id="t2", rating="down",
+                      correction="balance was wrong for card 4111 1111 1111 1111")
+print(f"Feedback: {len(list_feedback(ledger))} entries, stored correction {fb['details']['correction']!r}, "
+      f"PII redactions {fb['details']['pii_redactions']}, chain verifies: {ledger.verify_chain()}")
 ```
 
 Output of `python examples/demo.py` (real run, re-checked in CI):
@@ -136,6 +151,7 @@ Adversarial evals:
   unconfirmed_action: PASS - checkbook held for confirmation; tool never ran
 
 audit chain intact: True
+Feedback: 2 entries, stored correction 'balance was wrong for card [REDACTED:CARD:1]', PII redactions 1, chain verifies: True
 ```
 <!-- /run -->
 
@@ -154,7 +170,7 @@ Test suite size (real collection, re-checked in CI):
 
 <!-- run: python scripts/count_tests.py -->
 ```text
-44 tests collected
+54 tests collected
 ```
 <!-- /run -->
 
@@ -165,6 +181,7 @@ Test suite size (real collection, re-checked in CI):
 - PII is redacted before routing and sealed per session.
 - High-impact service actions need explicit confirmation by action id.
 - Every tool call is written to a hash-chained audit log; `verify_chain()` detects edits.
+- Feedback corrections are PII-scrubbed and capped at 2,000 characters before they reach the append-only ledger.
 
 ## Limitations
 
@@ -172,6 +189,7 @@ Test suite size (real collection, re-checked in CI):
 - All customers, accounts and merchants are fictional fixtures in `mcp_servers.py`.
 - Sessions and the audit log are in memory.
 - The four evals are adversarial checks I wrote, run on fixed inputs; they are not a red-team study.
+- Feedback is captured but not yet mined into eval cases; that loop is in Jagadish-agent-feedback-loop.
 
 ## Built vs planned
 
@@ -182,6 +200,7 @@ Test suite size (real collection, re-checked in CI):
 | Sub-agents over MCP-style tool servers | Built | `banksupport/agents.py`, `banksupport/mcp_servers.py` |
 | Confirmation gates | Built | `banksupport/guardrails.py` |
 | Hash-chained audit and adversarial evals | Built | `banksupport/audit.py`, `banksupport/evals.py` |
+| User feedback in the audit ledger, PII scrubbed | Built | `banksupport/feedback.py` |
 | LLM intent routing and real MCP transport | Planned | docs/implementation-guide.md |
 | Persistent sessions and audit store | Planned | not started |
 
@@ -218,6 +237,7 @@ run; it is a plan.
 | [Jagadish-pii-guard](https://github.com/jagadishmazure-jpg/Jagadish-pii-guard) | The redaction step as a standalone, evaluated library |
 | [Jagadish-agent-auth-security](https://github.com/jagadishmazure-jpg/Jagadish-agent-auth-security) | Deeper treatment of agent auth |
 | [Jagadish-fraud-detection-agents](https://github.com/jagadishmazure-jpg/Jagadish-fraud-detection-agents) | Where a flagged transaction would go next |
+| [Jagadish-agent-feedback-loop](https://github.com/jagadishmazure-jpg/Jagadish-agent-feedback-loop) | Turns captured feedback into eval cases and a regression gate |
 
 ## Documentation
 
@@ -237,6 +257,7 @@ banksupport/
   guardrails.py   confirmation gate
   memory.py       per-customer conversation memory
   audit.py        hash-chained audit log
+  feedback.py     thumbs up/down + correction into the ledger
   evals.py        four adversarial evals
 examples/demo.py  the run shown above
 tests/            offline pytest suite

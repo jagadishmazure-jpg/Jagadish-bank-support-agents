@@ -28,6 +28,7 @@
 - PII is redacted before routing and sealed per session.
 - High-impact service actions need explicit confirmation by action id.
 - Every tool call is written to a hash-chained audit log; `verify_chain()` detects edits.
+- Feedback corrections are PII-scrubbed and capped at 2,000 characters before they reach the append-only ledger.
 
 ## What to measure before calling it production-ready
 
