@@ -88,4 +88,4 @@ class PIIVault:
         try:
             return self._store[session_id][placeholder]
         except KeyError:
-            raise KeyError(f"no sealed value for {placeholder!r}")
+            raise KeyError(f"no sealed value for {placeholder!r}") from None

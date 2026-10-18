@@ -7,7 +7,7 @@ Nothing gated ever executes without a recorded confirmation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import count
 from typing import Any, Dict, List, Optional
 
@@ -60,7 +60,7 @@ class ConfirmationGate:
         try:
             return self._actions[action_id]
         except KeyError:
-            raise GuardrailError(f"unknown action '{action_id}'")
+            raise GuardrailError(f"unknown action '{action_id}'") from None
 
     def pending_for(self, session_id: str) -> List[PendingAction]:
         return [a for a in self._actions.values()

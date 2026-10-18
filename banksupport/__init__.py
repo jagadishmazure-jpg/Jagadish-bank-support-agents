@@ -7,7 +7,11 @@ PII scrubbing, adversarial evals and a hash-chained audit ledger.
 All data is synthetic and fictional. Deterministic: no network, no keys.
 """
 
-from .auth import AuthManager, AuthError, Session, TIERS
+from .agents import SupportOrchestrator, build_system
+from .audit import AuditLedger
+from .auth import TIERS, AuthError, AuthManager, Session
+from .evals import EvalResult, run_all_evals
+from .guardrails import ConfirmationGate, GuardrailError
 from .mcp_servers import (
     AccountsMCP,
     ServiceMCP,
@@ -16,10 +20,6 @@ from .mcp_servers import (
 )
 from .memory import ConversationStore
 from .pii import PIIScrubber, PIIVault
-from .guardrails import ConfirmationGate, GuardrailError
-from .audit import AuditLedger
-from .agents import SupportOrchestrator, build_system
-from .evals import EvalResult, run_all_evals
 
 __all__ = [
     "AuthManager",

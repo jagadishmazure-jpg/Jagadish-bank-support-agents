@@ -43,19 +43,20 @@ class ToolDef:
 
 
 # ---------------------------------------------------------------------------
-# Synthetic fixture data (fictional customers, accounts, transactions)
+# Synthetic fixture data (fictional customers, accounts, transactions).
+# Locale: United States, amounts in USD. Merchants and addresses are invented.
 # ---------------------------------------------------------------------------
 CUSTOMERS: Dict[str, Dict[str, Any]] = {
     "CUST-1001": {
         "name": "Aarav Sharma",
         "tier": "premium",
-        "credit_limit": 500000.00,
+        "credit_limit": 25000.00,
         "registered_address": "221 Maple Avenue, Riverton, IL 60999",
     },
     "CUST-1002": {
         "name": "Priya Nair",
         "tier": "standard",
-        "credit_limit": 150000.00,
+        "credit_limit": 8000.00,
         "registered_address": "14 Harbor Street, Bayview, CA 94999",
     },
 }
@@ -70,28 +71,28 @@ TRANSACTIONS: Dict[str, List[Dict[str, Any]]] = {
     "SAV-4521": [
         {"id": "TXN-9001", "date": "2026-10-15", "description": "Brightcart online purchase",
          "amount": -200.00, "flagged": False},
-        {"id": "TXN-9002", "date": "2026-10-14", "description": "Salary credit",
-         "amount": 85000.00, "flagged": False},
+        {"id": "TXN-9002", "date": "2026-10-14", "description": "Payroll deposit",
+         "amount": 8500.00, "flagged": False},
         {"id": "TXN-9003", "date": "2026-10-12", "description": "Bank transfer to R. Mehta",
-         "amount": -5000.00, "flagged": False},
+         "amount": -500.00, "flagged": False},
         {"id": "TXN-9004", "date": "2026-10-10", "description": "Electricity bill",
-         "amount": -2340.00, "flagged": False},
+         "amount": -184.20, "flagged": False},
         {"id": "TXN-9005", "date": "2026-10-08", "description": "Interest credit",
          "amount": 412.50, "flagged": False},
         {"id": "TXN-9006", "date": "2026-10-05", "description": "ATM withdrawal",
-         "amount": -10000.00, "flagged": False},
+         "amount": -400.00, "flagged": False},
     ],
     "CHK-7834": [
         {"id": "TXN-9101", "date": "2026-10-13", "description": "Grocery store",
-         "amount": -3250.00, "flagged": False},
+         "amount": -132.50, "flagged": False},
         {"id": "TXN-9102", "date": "2026-10-11", "description": "Freelance payout",
-         "amount": 22000.00, "flagged": False},
+         "amount": 2200.00, "flagged": False},
     ],
     "SAV-9912": [
         {"id": "TXN-9201", "date": "2026-10-14", "description": "Bookstore purchase",
-         "amount": -850.00, "flagged": False},
-        {"id": "TXN-9202", "date": "2026-10-09", "description": "Salary credit",
-         "amount": 62000.00, "flagged": False},
+         "amount": -38.95, "flagged": False},
+        {"id": "TXN-9202", "date": "2026-10-09", "description": "Payroll deposit",
+         "amount": 6200.00, "flagged": False},
     ],
 }
 
@@ -203,7 +204,7 @@ class TransactionsMCP(MCPServer):
         ]
 
     def _tool_list_transactions(self, args, customer_id):
-        acct = self._owned_account(customer_id, args["account_id"])
+        self._owned_account(customer_id, args["account_id"])  # raises if not the caller's account
         limit = int(args.get("limit", 10))
         return TRANSACTIONS[args["account_id"]][:limit]
 

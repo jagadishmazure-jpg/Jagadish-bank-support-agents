@@ -6,16 +6,13 @@ import pytest
 
 from banksupport import (
     AccountsMCP,
-    AuditLedger,
     AuthError,
-    AuthManager,
     ConfirmationGate,
     ConversationStore,
     GuardrailError,
     PIIScrubber,
     PIIVault,
     ServiceMCP,
-    SupportOrchestrator,
     TransactionsMCP,
     build_system,
     run_all_evals,
@@ -25,7 +22,6 @@ from banksupport.mcp_servers import (
     PermissionDenied,
     UnknownTool,
     find_transaction,
-    reset_fixtures,
 )
 
 
@@ -135,7 +131,7 @@ class TestAuth:
 
     def test_standard_denied_credit_limit_politely(self, system, standard_token):
         resp = system.respond(standard_token,
-                              "increase my credit limit to $200000")
+                              "increase my credit limit to $40000")
         assert "permission" in resp.lower()
         assert "premium" not in resp.lower()  # never leaks tier abilities
 
@@ -152,6 +148,29 @@ class TestAuth:
     def test_unknown_permission_denied(self, system, premium_token):
         allowed, _ = system.auth.authorize(premium_token, "vault.self_destruct")
         assert allowed is False
+
+    def test_tokens_are_random_and_carry_no_customer_data(self, system):
+        a = system.auth.login("CUST-1001")
+        b = system.auth.login("CUST-1001")
+        assert a != b
+        assert len(a) >= 40
+        assert "CUST" not in a and "1001" not in a
+
+    def test_token_expires_after_ttl(self):
+        from banksupport.auth import AuthManager
+        now = [1000.0]
+        auth = AuthManager(ttl_seconds=60, clock=lambda: now[0])
+        token = auth.login("CUST-1001")
+        assert auth.get_session(token).customer_id == "CUST-1001"
+        now[0] += 61
+        with pytest.raises(AuthError):
+            auth.get_session(token)
+
+    def test_logout_revokes_token(self, system):
+        token = system.auth.login("CUST-1002")
+        system.auth.logout(token)
+        with pytest.raises(AuthError):
+            system.auth.get_session(token)
 
     def test_unknown_customer_login_fails(self, system):
         with pytest.raises(AuthError):

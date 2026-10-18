@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from . import mcp_servers
-from .auth import AuthManager, AuthError, Session
+from .audit import AuditLedger
+from .auth import AuthError, AuthManager, Session
+from .guardrails import ConfirmationGate, GuardrailError
 from .mcp_servers import (
     AccountsMCP,
     MCPServer,
@@ -24,8 +26,6 @@ from .mcp_servers import (
 )
 from .memory import ConversationStore
 from .pii import PIIScrubber, PIIVault
-from .guardrails import ConfirmationGate, GuardrailError
-from .audit import AuditLedger
 
 
 def _fmt(amount: float) -> str:
@@ -294,7 +294,7 @@ class ServiceAgent(SubAgent):
                  or re.search(r"to\s+([\d,]+)", ctx.scrubbed_message.lower()))
         if not match:
             return ("What should the new credit limit be? Please reply with "
-                    "an amount, e.g. 'increase my credit limit to $600000'.")
+                    "an amount, e.g. 'increase my credit limit to $30000'.")
         new_limit = float(match.group(1).replace(",", ""))
         aid = ctx.guardrails.request(
             ctx.session.token, "credit_limit",
